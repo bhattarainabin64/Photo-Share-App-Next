@@ -3,7 +3,7 @@ name: Deploy Next.js App to Azure App Service
 on:
   push:
     branches:
-      - master  # or 'master' if your branch is named that
+      - master  # or 'main' if your default branch is main
 
 jobs:
   build-and-deploy:
@@ -24,11 +24,14 @@ jobs:
       - name: 🏗️ Build Next.js App
         run: npm run build
 
+      - name: ✅ Ensure .next, node_modules & package.json are included
+        run: |
+          ls -la
+          ls -la .next
+
       - name: ⚙️ Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: PhotoShareNext  # your Azure Web App name
+          app-name: PhotoShareNext  # Your Azure App Service name
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: .
-
-  
