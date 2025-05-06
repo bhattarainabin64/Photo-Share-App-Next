@@ -1,0 +1,32 @@
+name: Deploy Next.js App to Azure App Service
+
+on:
+  push:
+    branches:
+      - main  # or 'master' if your branch is named that
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout source
+        uses: actions/checkout@v3
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🏗️ Build Next.js App
+        run: npm run build
+
+      - name: ⚙️ Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: PhotoShareNext  # your Azure Web App name
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
