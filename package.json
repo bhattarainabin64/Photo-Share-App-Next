@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "npm run check-build && next start",
-    "check-build": "node -e \"if (!require('fs').existsSync('.next')) { console.error('Missing .next directory. Run npm run build first.'); process.exit(1); }\"",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
