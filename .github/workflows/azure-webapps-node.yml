@@ -30,3 +30,5 @@ jobs:
           app-name: PhotoShareNext  # your Azure Web App name
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: .
+
+  
