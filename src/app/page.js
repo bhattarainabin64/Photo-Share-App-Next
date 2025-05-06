@@ -1,103 +1,273 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Heart, MessageCircle, Share2, X, Camera, Bookmark, MoreHorizontal, Search,
+} from "lucide-react";
+import Navbar from "@/components/Navbar";
+import PhotoModal from "@/components/PhotoModal";
+import { useSelector } from "react-redux";
+import moment from "moment";
+import {
+  useLazyGetPhotosQuery,
+  useLikePhotoMutation,
+  useCommentPhotoMutation,
+} from "@/lib/services/upload";
+
+const Home = () => {
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [likes, setLikes] = useState({});
+  const [comments, setComments] = useState({});
+  const [saved, setSaved] = useState({});
+  const [searchActive, setSearchActive] = useState(false);
+  const [viewMode, setViewMode] = useState("grid");
+  const [photos, setPhotos] = useState([]);
+  const commentInputRef = useRef(null);
+
+  const token = useSelector((state) => state?.auth?.token);
+  const user = useSelector((state) => state?.auth?.user);
+
+  const [triggerGetPhotos, { data, isLoading }] = useLazyGetPhotosQuery();
+  const [likePhoto] = useLikePhotoMutation();
+  const [commentPhoto] = useCommentPhotoMutation();
+
+  useEffect(() => {
+    triggerGetPhotos({ page: 1, limit: 20, search: "", sortBy: "createdAt" });
+  }, [triggerGetPhotos]);
+
+  useEffect(() => {
+    if (data?.photos?.length) {
+      const transformed = data.photos.map((photo) => ({
+        id: photo._id,
+        src: photo.imageUrl,
+        caption: photo.caption,
+        username: photo.creator?.email || "unknown",
+        likes: photo.likes?.length || 0,
+        timestamp: moment(photo.createdAt).fromNow(),
+        raw: photo,
+      }));
+      setPhotos(transformed);
+
+      const initialLikes = {};
+      const initialComments = {};
+      transformed.forEach((photo) => {
+        initialLikes[photo.id] = false;
+        initialComments[photo.id] = photo.raw.comments || [];
+      });
+      setLikes(initialLikes);
+      setComments(initialComments);
+    }
+  }, [data]);
+
+  const openModal = (photo) => {
+    document.body.style.overflow = "hidden";
+    setSelectedPhoto(photo);
+    setTimeout(() => commentInputRef.current?.focus(), 300);
+  };
+
+  const closeModal = () => {
+    document.body.style.overflow = "auto";
+    setSelectedPhoto(null);
+  };
+
+  const toggleLike = async (id, e) => {
+    e?.stopPropagation();
+    setLikes((prev) => ({ ...prev, [id]: !prev[id] }));
+    try {
+      await likePhoto(id);
+    } catch (err) {
+      console.error("Like failed:", err);
+    }
+  };
+
+  const toggleSave = (id, e) => {
+    e?.stopPropagation();
+    setSaved((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const addComment = async (id, text) => {
+    if (!text.trim()) return;
+    try {
+      await commentPhoto({ photoId: id, text: text });
+      setComments((prev) => ({
+        ...prev,
+        [id]: [...(prev[id] || []), { text, username: user?.email || "you", timestamp: "Just now" }],
+      }));
+    } catch (err) {
+      console.error("Comment failed:", err);
+    }
+  };
+
+  const shareImage = (url, e) => {
+    e?.stopPropagation();
+    navigator.clipboard.writeText(url);
+    const toast = document.createElement("div");
+    toast.className = "fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded-full text-sm z-50";
+    toast.textContent = "Link copied to clipboard!";
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transition = "opacity 0.5s ease";
+      setTimeout(() => document.body.removeChild(toast), 500);
+    }, 2000);
+  };
+
+  const toggleSearchBar = () => setSearchActive(!searchActive);
+  const toggleView = () => setViewMode(viewMode === "grid" ? "feed" : "grid");
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="bg-[#0F172A] min-h-screen text-gray-100">
+      <Navbar userRole={user?.role} isLoggedIn={!!token} />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Search Overlay */}
+      <div className={`fixed inset-0 bg-[#0F172A] z-40 transform transition-transform duration-300 ${searchActive ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="container mx-auto p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="Search photos, users, or tags..."
+                className="w-full pl-10 pr-4 py-3 bg-slate-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus={searchActive}
+              />
+              <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+            </div>
+            <button className="ml-4 p-2" onClick={toggleSearchBar}>
+              <X size={24} className="text-gray-300" />
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
+      <div className="container mx-auto px-4 pt-4 pb-20">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold text-gray-100">Discover</h1>
+          <div className="flex items-center space-x-3">
+            <button onClick={toggleSearchBar} className="p-2 rounded-full hover:bg-slate-800 text-gray-300">
+              <Search size={20} />
+            </button>
+            <button onClick={toggleView} className="p-2 rounded-full hover:bg-slate-800 text-gray-300">
+              <div className="relative w-5 h-5">
+                {viewMode === "grid" ? (
+                  <div className="grid grid-cols-2 gap-0.5">{[...Array(4)].map((_, i) => <div key={i} className="bg-gray-300 rounded-sm"></div>)}</div>
+                ) : (
+                  <div className="flex flex-col justify-between h-full">{[...Array(3)].map((_, i) => <div key={i} className="h-1 bg-gray-300 rounded-sm"></div>)}</div>
+                )}
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <p className="text-center text-gray-400">Loading photos...</p>
+        ) : viewMode === "grid" ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {photos.map((photo) => (
+              <div
+                key={photo.id}
+                className="group relative rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 bg-slate-800"
+                onClick={() => openModal(photo)}
+              >
+                <div className="aspect-square overflow-hidden">
+                  <img src={photo.src} alt={photo.caption} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                  <p className="text-white text-sm font-medium truncate">{photo.caption}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center">
+                      <Heart size={16} className={`${likes[photo.id] ? "text-red-500 fill-red-500" : "text-white"} mr-1`} onClick={(e) => toggleLike(photo.id, e)} />
+                      <span className="text-white text-xs">{photo.likes + (likes[photo.id] ? 1 : 0)}</span>
+                    </div>
+                    <span className="text-white text-xs">@{photo.username}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {photos.map((photo) => (
+              <div key={photo.id} className="bg-slate-800 rounded-xl shadow-md overflow-hidden">
+                <div className="flex items-center justify-between p-3 border-b border-slate-700">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">{photo.username.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{photo.username}</p>
+                      <p className="text-gray-400 text-xs">{photo.timestamp}</p>
+                    </div>
+                  </div>
+                  <button><MoreHorizontal size={20} className="text-gray-400" /></button>
+                </div>
+                <div className="relative cursor-pointer" onClick={() => openModal(photo)}>
+                  <img src={photo.src} alt={photo.caption} className="w-full h-auto" />
+                  <div className="absolute inset-0" onDoubleClick={() => toggleLike(photo.id)}></div>
+                </div>
+                <div className="p-3">
+                  <div className="flex justify-between mb-2">
+                    <div className="flex space-x-4">
+                      <button onClick={(e) => toggleLike(photo.id, e)}>
+                        <Heart size={24} className={likes[photo.id] ? "text-red-500 fill-red-500" : "text-gray-300"} />
+                      </button>
+                      <button onClick={() => openModal(photo)}><MessageCircle size={24} className="text-gray-300" /></button>
+                      <button onClick={(e) => shareImage(photo.src, e)}><Share2 size={24} className="text-gray-300" /></button>
+                    </div>
+                    <button onClick={(e) => toggleSave(photo.id, e)}>
+                      <Bookmark size={24} className={saved[photo.id] ? "text-blue-500 fill-blue-500" : "text-gray-300"} />
+                    </button>
+                  </div>
+                  <p className="text-sm font-medium mb-1">{photo.likes + (likes[photo.id] ? 1 : 0)} likes</p>
+                  <p className="text-sm"><span className="font-medium">{photo.username}</span> {photo.caption}</p>
+                  {comments[photo.id]?.length > 0 && (
+                    <button className="text-gray-400 text-sm mt-1" onClick={() => openModal(photo)}>
+                      View all {comments[photo.id].length} comments
+                    </button>
+                  )}
+                  <div className="flex items-center mt-3 border-t border-slate-700 pt-3">
+                    <input
+                      type="text"
+                      placeholder="Add a comment..."
+                      className="flex-1 text-sm bg-transparent outline-none text-gray-300 placeholder-gray-500"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          addComment(photo.id, e.target.value);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                    <button className="text-blue-400 font-medium text-sm" onClick={(e) => {
+                      const input = e.target.previousSibling;
+                      addComment(photo.id, input.value);
+                      input.value = "";
+                    }}>Post</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button className="fixed right-6 bottom-6 w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-lg flex items-center justify-center">
+          <Camera size={24} />
+        </button>
+      </div>
+
+      {selectedPhoto && (
+        <PhotoModal
+          selectedPhoto={selectedPhoto}
+          closeModal={closeModal}
+          likes={likes}
+          comments={comments}
+          saved={saved}
+          toggleLike={toggleLike}
+          toggleSave={toggleSave}
+          addComment={addComment}
+          commentInputRef={commentInputRef}
+        />
+      )}
     </div>
   );
-}
+};
+
+export default Home;

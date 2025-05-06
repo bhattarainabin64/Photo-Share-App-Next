@@ -1,26 +1,71 @@
+/* Global CSS */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Set the background color for the entire body */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0F172A !important;
+  color: white; /* Ensures text in body is white */
+}
+
+/* Ensure input text is white */
+input,
+select,
+textarea {
+  color: white; /* Ensures input text is always white */
+  background-color: #1F2937; /* Sets a darker background for inputs for contrast */
+  border: 1px solid #4B5563; /* Optional: Adds a subtle border to input elements */
+}
+
+/* Ensure placeholder text is also white */
+input::placeholder,
+select::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.7); /* Subtle white placeholder text */
+}
+
+/* Style for autofilled input fields */
+input:-webkit-autofill,
+select:-webkit-autofill,
+textarea:-webkit-autofill {
+  color: white !important; /* Ensures the autofill text is always white */
+  background-color: #1F2937 !important; /* Keeps autofill background consistent */
+  transition: background-color 5000s ease-in-out 0s; /* Prevents autofill background flash */
+}
+
+/* Optional: Customize button color */
+button {
+  color: white;
+  background-color: #3B82F6;
+  border: none; /* Remove default border */
+  padding: 0.75rem 1.5rem; /* Add some padding for better button size */
+  border-radius: 0.375rem; /* Round the corners */
+  cursor: pointer; /* Pointer cursor on hover */
+}
+
+button:hover {
+  background-color: #2563EB; /* Lighter blue on hover */
+  transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+/* Optional: Focus styles for inputs and buttons */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none; /* Removes default focus outline */
+  border-color: #3B82F6; /* Adds blue border on focus */
+}
+
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* Adds subtle blue glow on focus */
+}
+
+/* Style for autofilled input fields */
+input:-webkit-autofill,
+select:-webkit-autofill,
+textarea:-webkit-autofill {
+  color: white !important; /* Ensures the autofill text is always white */
+  background-color: #1F2937 !important; /* Keeps autofill background consistent */
+  -webkit-text-fill-color: white !important; /* Fixes text color in autofilled inputs */
+  transition: background-color 5000s ease-in-out 0s; /* Prevents autofill background flash */
 }
