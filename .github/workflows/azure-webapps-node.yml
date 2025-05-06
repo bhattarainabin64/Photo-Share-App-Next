@@ -3,7 +3,7 @@ name: Deploy Next.js App to Azure App Service
 on:
   push:
     branches:
-      - main  # or 'master' if your branch is named that
+      - master  # or 'master' if your branch is named that
 
 jobs:
   build-and-deploy:
