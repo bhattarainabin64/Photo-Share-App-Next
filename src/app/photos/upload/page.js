@@ -123,6 +123,7 @@ const UploadPhotoPage = () => {
       <div 
         className="md:w-2/3 w-full bg-slate-900/50 flex items-center justify-center p-8"
       >
+        
         <div className="w-full max-w-4xl relative">
           <input
             id="photo-upload"
