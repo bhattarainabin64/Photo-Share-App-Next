@@ -25,10 +25,12 @@ jobs:
         run: |
           npm run build
           mkdir -p ./standalone
-          cp -r ./build ./standalone/.next
-          cp -r ./public ./standalone/public
-          cp -r ./node_modules ./standalone/node_modules
-          cp package.json ./standalone
+          cp -r .next ./standalone/.next
+          cp -r public ./standalone/public
+          cp -r node_modules ./standalone/node_modules
+          cp -r package.json ./standalone
+          cp -r next.config.mjs ./standalone
+          echo "PORT=8080" > ./standalone/.env
 
       - name: 🚀 Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
