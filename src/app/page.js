@@ -16,7 +16,8 @@ import {
 
 const Home = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [likes, setLikes] = useState({});
+  const [userLikedPhotos, setUserLikedPhotos] = useState({});
+  const [likesCounts, setLikesCounts] = useState({});
   const [comments, setComments] = useState({});
   const [saved, setSaved] = useState({});
   const [searchActive, setSearchActive] = useState(false);
@@ -48,16 +49,24 @@ const Home = () => {
       }));
       setPhotos(transformed);
 
-      const initialLikes = {};
+      const initialUserLikes = {};
+      const initialLikesCounts = {};
       const initialComments = {};
+
       transformed.forEach((photo) => {
-        initialLikes[photo.id] = false;
+        const hasUserLiked = photo.raw.likes?.some(
+          (like) => like.userId === user?.id || like.user === user?.id
+        );
+        initialUserLikes[photo.id] = hasUserLiked || false;
+        initialLikesCounts[photo.id] = photo.raw.likes?.length || 0;
         initialComments[photo.id] = photo.raw.comments || [];
       });
-      setLikes(initialLikes);
+
+      setUserLikedPhotos(initialUserLikes);
+      setLikesCounts(initialLikesCounts);
       setComments(initialComments);
     }
-  }, [data]);
+  }, [data, user?.id]);
 
   const openModal = (photo) => {
     document.body.style.overflow = "hidden";
@@ -72,11 +81,22 @@ const Home = () => {
 
   const toggleLike = async (id, e) => {
     e?.stopPropagation();
-    setLikes((prev) => ({ ...prev, [id]: !prev[id] }));
+    const currentlyLiked = userLikedPhotos[id];
+    const currentCount = likesCounts[id];
+    const newCount = currentlyLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+
+    setUserLikedPhotos((prev) => ({ ...prev, [id]: !currentlyLiked }));
+    setLikesCounts((prev) => ({ ...prev, [id]: newCount }));
+
     try {
-      await likePhoto(id);
+      const response = await likePhoto(id).unwrap();
+      if (response && typeof response.likesCount === "number") {
+        setLikesCounts((prev) => ({ ...prev, [id]: response.likesCount }));
+      }
     } catch (err) {
       console.error("Like failed:", err);
+      setUserLikedPhotos((prev) => ({ ...prev, [id]: currentlyLiked }));
+      setLikesCounts((prev) => ({ ...prev, [id]: currentCount }));
     }
   };
 
@@ -88,10 +108,11 @@ const Home = () => {
   const addComment = async (id, text) => {
     if (!text.trim()) return;
     try {
-      await commentPhoto({ photoId: id, text: text });
+      const response = await commentPhoto({ photoId: id, text }).unwrap();
+      const latestComments = response?.comments || [];
       setComments((prev) => ({
         ...prev,
-        [id]: [...(prev[id] || []), { text, username: user?.email || "you", timestamp: "Just now" }],
+        [id]: latestComments,
       }));
     } catch (err) {
       console.error("Comment failed:", err);
@@ -102,7 +123,8 @@ const Home = () => {
     e?.stopPropagation();
     navigator.clipboard.writeText(url);
     const toast = document.createElement("div");
-    toast.className = "fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded-full text-sm z-50";
+    toast.className =
+      "fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded-full text-sm z-50";
     toast.textContent = "Link copied to clipboard!";
     document.body.appendChild(toast);
     setTimeout(() => {
@@ -119,7 +141,6 @@ const Home = () => {
     <div className="bg-[#0F172A] min-h-screen text-gray-100">
       <Navbar userRole={user?.role} isLoggedIn={!!token} />
 
-      {/* Search Overlay */}
       <div className={`fixed inset-0 bg-[#0F172A] z-40 transform transition-transform duration-300 ${searchActive ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto p-4">
           <div className="flex items-center justify-between mb-4">
@@ -175,8 +196,8 @@ const Home = () => {
                   <p className="text-white text-sm font-medium truncate">{photo.caption}</p>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center">
-                      <Heart size={16} className={`${likes[photo.id] ? "text-red-500 fill-red-500" : "text-white"} mr-1`} onClick={(e) => toggleLike(photo.id, e)} />
-                      <span className="text-white text-xs">{photo.likes + (likes[photo.id] ? 1 : 0)}</span>
+                      <Heart size={16} className={`${userLikedPhotos[photo.id] ? "text-red-500 fill-red-500" : "text-white"} mr-1`} onClick={(e) => toggleLike(photo.id, e)} />
+                      <span className="text-white text-xs">{likesCounts[photo.id] || 0}</span>
                     </div>
                     <span className="text-white text-xs">@{photo.username}</span>
                   </div>
@@ -208,7 +229,7 @@ const Home = () => {
                   <div className="flex justify-between mb-2">
                     <div className="flex space-x-4">
                       <button onClick={(e) => toggleLike(photo.id, e)}>
-                        <Heart size={24} className={likes[photo.id] ? "text-red-500 fill-red-500" : "text-gray-300"} />
+                        <Heart size={24} className={userLikedPhotos[photo.id] ? "text-red-500 fill-red-500" : "text-gray-300"} />
                       </button>
                       <button onClick={() => openModal(photo)}><MessageCircle size={24} className="text-gray-300" /></button>
                       <button onClick={(e) => shareImage(photo.src, e)}><Share2 size={24} className="text-gray-300" /></button>
@@ -217,7 +238,7 @@ const Home = () => {
                       <Bookmark size={24} className={saved[photo.id] ? "text-blue-500 fill-blue-500" : "text-gray-300"} />
                     </button>
                   </div>
-                  <p className="text-sm font-medium mb-1">{photo.likes + (likes[photo.id] ? 1 : 0)} likes</p>
+                  <p className="text-sm font-medium mb-1">{likesCounts[photo.id] || 0} likes</p>
                   <p className="text-sm"><span className="font-medium">{photo.username}</span> {photo.caption}</p>
                   {comments[photo.id]?.length > 0 && (
                     <button className="text-gray-400 text-sm mt-1" onClick={() => openModal(photo)}>
@@ -257,13 +278,14 @@ const Home = () => {
         <PhotoModal
           selectedPhoto={selectedPhoto}
           closeModal={closeModal}
-          likes={likes}
+          likes={userLikedPhotos}
           comments={comments}
           saved={saved}
           toggleLike={toggleLike}
           toggleSave={toggleSave}
           addComment={addComment}
           commentInputRef={commentInputRef}
+          likesCounts={likesCounts}
         />
       )}
     </div>

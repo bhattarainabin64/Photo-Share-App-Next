@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
  export const baseApi = createApi({
   reducerPath: `Api`,
   baseQuery: fetchBaseQuery({
-    baseUrl: 'https://scalablenodejs-gfare3c5ejh9dfcz.ukwest-01.azurewebsites.net/api',
+    baseUrl: 'http://localhost:8080/api',
     prepareHeaders: (headers, { getState }) => {
       const token = getState()?.auth?.token;
 
