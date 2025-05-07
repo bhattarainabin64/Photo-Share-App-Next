@@ -187,6 +187,8 @@ const PhotoModal = ({
       </div>
     </div>
   );
+  
+
 };
 
 export default PhotoModal;
