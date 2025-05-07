@@ -28,12 +28,35 @@ jobs:
       - name: Clean deployment directory
         run: rm -rf deploy && mkdir -p deploy
 
+      - name: Create server.js file
+        run: |
+          cat > server.js << EOL
+          const { createServer } = require('http');
+          const { parse } = require('url');
+          const next = require('next');
+          
+          const dev = process.env.NODE_ENV !== 'production';
+          const app = next({ dev });
+          const handle = app.getRequestHandler();
+          const port = process.env.PORT || 3000;
+          
+          app.prepare().then(() => {
+            createServer((req, res) => {
+              const parsedUrl = parse(req.url, true);
+              handle(req, res, parsedUrl);
+            }).listen(port, (err) => {
+              if (err) throw err;
+              console.log(\`> Ready on http://localhost:\${port}\`);
+            });
+          });
+          EOL
+
       - name: Copy Next.js output to deployment directory
         run: |
           cp -r .next deploy/
-          cp -r public deploy/
+          cp -r public deploy/ || true
           cp package.json deploy/
-          cp next.config.mjs deploy/
+          cp next.config.mjs deploy/ || true
           cp server.js deploy/
 
       - name: Create deployment marker
