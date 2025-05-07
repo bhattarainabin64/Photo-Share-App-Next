@@ -25,14 +25,19 @@ jobs:
           npm install
           npm run build
 
-      - name: Prepare deployment package
+      - name: Clean deployment directory
+        run: rm -rf deploy && mkdir -p deploy
+
+      - name: Copy Next.js output to deployment directory
         run: |
-          mkdir -p deploy/.next/static
-          cp -r .next/standalone/* deploy/
-          cp -r .next/static/* deploy/.next/static
-          cp -r public deploy/public || true
+          cp -r .next deploy/
+          cp -r public deploy/
           cp package.json deploy/
-          cp server.js deploy/ || true
+          cp next.config.mjs deploy/
+          cp server.js deploy/
+
+      - name: Create deployment marker
+        run: echo "Deployed at $(date)" > deploy/deploy-timestamp.txt
 
       - name: Zip deployment package
         run: |
@@ -68,4 +73,11 @@ jobs:
           app-name: 'PhotoShareNext'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .   # ✅ use current directory where files were unzipped
+          package: .
+
+      - name: Restart web app
+        uses: azure/cli@v1.0.7
+        with:
+          inlineScript: |
+            az webapp restart --name PhotoShareNext --resource-group DefaultResourceGroup-CCAN
+        continue-on-error: true
