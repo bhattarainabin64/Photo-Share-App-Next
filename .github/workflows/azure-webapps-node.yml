@@ -1,4 +1,4 @@
-name: Deploy Next.js App to Azure App Service
+name: Build and Deploy Next.js to Azure Web App
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout source
+      - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
       - name: 🔧 Setup Node.js
@@ -21,16 +21,18 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install
 
-      - name: 🏗️ Build Next.js App
-        run: npm run build
-
-      - name: 📦 Archive files
+      - name: 🏗️ Build app using standalone output
         run: |
-          zip -r build.zip . -x '*.git*'
+          npm run build
+          mkdir -p ./standalone
+          cp -r ./build ./standalone/.next
+          cp -r ./public ./standalone/public
+          cp -r ./node_modules ./standalone/node_modules
+          cp package.json ./standalone
 
-      - name: 🚀 Deploy to Azure Web App via Zip
+      - name: 🚀 Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: PhotoShareNext
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: build.zip
+          package: ./standalone
