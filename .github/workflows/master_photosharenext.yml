@@ -25,42 +25,13 @@ jobs:
           npm install
           npm run build
 
-      - name: Clean deployment directory
-        run: rm -rf deploy && mkdir -p deploy
-
-      - name: Create server.js file
+      - name: Prepare deployment package
         run: |
-          cat > server.js << EOL
-          const { createServer } = require('http');
-          const { parse } = require('url');
-          const next = require('next');
-          
-          const dev = process.env.NODE_ENV !== 'production';
-          const app = next({ dev });
-          const handle = app.getRequestHandler();
-          const port = process.env.PORT || 3000;
-          
-          app.prepare().then(() => {
-            createServer((req, res) => {
-              const parsedUrl = parse(req.url, true);
-              handle(req, res, parsedUrl);
-            }).listen(port, (err) => {
-              if (err) throw err;
-              console.log(\`> Ready on http://localhost:\${port}\`);
-            });
-          });
-          EOL
-
-      - name: Copy Next.js output to deployment directory
-        run: |
-          cp -r .next deploy/
-          cp -r public deploy/ || true
+          mkdir -p deploy/.next/static
+          cp -r .next/standalone/* deploy/
+          cp -r .next/static/* deploy/.next/static
+          cp -r public deploy/public || true
           cp package.json deploy/
-          cp next.config.mjs deploy/ || true
-          cp server.js deploy/
-
-      - name: Create deployment marker
-        run: echo "Deployed at $(date)" > deploy/deploy-timestamp.txt
 
       - name: Zip deployment package
         run: |
@@ -95,12 +66,5 @@ jobs:
         with:
           app-name: 'PhotoShareNext'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: .
-
-      - name: Restart web app
-        uses: azure/cli@v1.0.7
-        with:
-          inlineScript: |
-            az webapp restart --name PhotoShareNext --resource-group DefaultResourceGroup-CCAN
-        continue-on-error: true
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
