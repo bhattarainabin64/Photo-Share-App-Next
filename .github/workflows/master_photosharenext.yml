@@ -29,9 +29,10 @@ jobs:
         run: |
           mkdir -p deploy/.next/static
           cp -r .next/standalone/* deploy/
-          cp -r .next/static/* deploy/.next/static
-          cp -r public deploy/public || true
+          cp -r .next/static deploy/.next/    # ✅ copies entire static dir with all chunks
+          cp -r public deploy/public || true  # ✅ include static assets like favicon
           cp package.json deploy/
+          cp -r node_modules deploy/node_modules || true  # ✅ optional if not using Oryx auto-install
 
       - name: Zip deployment package
         run: |
