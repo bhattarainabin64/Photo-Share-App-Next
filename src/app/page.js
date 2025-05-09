@@ -180,7 +180,10 @@ const Home = () => {
         </div>
 
         {isLoading ? (
-          <p className="text-center text-gray-400">Loading photos...</p>
+       <div className="flex justify-center items-center py-6">
+      <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+    </div>
+
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {photos.map((photo) => (
