@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useFormik } from "formik";
-import { Eye, EyeOff, User, Mail } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify"; 
 import { useCreateUserMutation } from "@/lib/services/auth";
@@ -48,6 +48,7 @@ const RegisterPage = () => {
       if (values.password !== values.confirmPassword) {
         errors.confirmPassword = "Passwords must match";
       }
+      if (!values.role) errors.role = "Role selection is required";
       return errors;
     },
     onSubmit: async (values) => {
@@ -173,6 +174,41 @@ const RegisterPage = () => {
             </div>
             {formik.errors.confirmPassword && formik.touched.confirmPassword && (
               <div className="text-red-500 text-xs mt-1">{formik.errors.confirmPassword}</div>
+            )}
+          </div>
+
+          {/* Role Selection */}
+          <div className="flex flex-col relative">
+            <label htmlFor="role" className="text-sm font-semibold text-white mb-2">
+              Select Role
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-3 text-gray-400">
+                <Users size={20} />
+              </div>
+              <select
+                id="role"
+                name="role"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.role || "creator"}
+                className={`p-3 border rounded-md focus:outline-none focus:ring-2 w-full pl-10 bg-white ${
+                  formik.errors.role && formik.touched.role ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <option value="creator">creator</option>
+                <option value="consumer">consumer</option>
+              </select>
+            </div>
+            {formik.errors.role && formik.touched.role && <div className="text-red-500 text-xs mt-1">{formik.errors.role}</div>}
+          </div>
+
+          {/* Role Description */}
+          <div className="text-gray-300 text-xs bg-gray-700 p-3 rounded-md">
+            {formik.values.role === "creator" ? (
+              <p>Creators can upload and manage photos, create collections, and interact with other content.</p>
+            ) : (
+              <p>Consumers can browse photos, like content, leave comments, and follow creators.</p>
             )}
           </div>
 
