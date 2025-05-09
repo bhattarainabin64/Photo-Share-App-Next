@@ -13,7 +13,8 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -24,14 +25,16 @@ jobs:
         run: |
           npm install
           npm run build
+          npm prune --production
 
       - name: Prepare deployment package
         run: |
-          mkdir -p deploy/.next/static
-          cp -r .next/standalone/* deploy/
-          cp -r .next/static/* deploy/.next/static
-          cp -r public deploy/public || true
+          mkdir -p deploy
+          cp -r .next deploy/.next
+          cp -r public deploy/public
+          cp -r node_modules deploy/node_modules
           cp package.json deploy/
+          cp -r .env.local deploy/.env.local || true
 
       - name: Zip deployment package
         run: |
@@ -67,4 +70,10 @@ jobs:
           app-name: 'PhotoShareNext'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+
+      - name: Restart Azure Web App (optional)
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az webapp restart --name PhotoShareNext --resource-group DefaultResourceGroup-CCAN
+        if: ${{ always() }}
